@@ -188,8 +188,11 @@ class TestTextEditor(unittest.TestCase):
         tab_id = self.editor._get_current_tab_id()
         self.editor._close_tab(tab_id)
 
-        # Should create a new empty tab
+        # Should create an empty state tab
         self.assertEqual(len(self.editor.tabs), 1)
+        # Check that it's an empty state tab
+        remaining_tab_id = list(self.editor.tabs.keys())[0]
+        self.assertTrue(self.editor.tabs[remaining_tab_id].get('is_empty_state', False))
 
 
 if __name__ == '__main__':

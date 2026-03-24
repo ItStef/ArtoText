@@ -97,6 +97,47 @@ class TextEditor:
 
         return tab_id
 
+    def _create_empty_state_tab(self):
+        tab_id = f"tab_{self.tab_counter}"
+        self.tab_counter += 1
+
+        tab_frame = tk.Frame(self.notebook)
+
+        # Create a centered label instead of text editor
+        message_label = tk.Label(
+            tab_frame,
+            text="No Files Are Currently Open",
+            font=("Arial", 14),
+            fg="gray"
+        )
+        message_label.pack(expand=True)
+
+        # Store tab info (no text_widget for empty state)
+        self.tabs[tab_id] = {
+            'text_widget': None,
+            'file_path': None,
+            'modified': False,
+            'frame': tab_frame,
+            'is_empty_state': True
+        }
+
+        # Add tab to notebook without close button
+        self.notebook.add(tab_frame, text="No Files Open")
+        self.notebook.select(tab_frame)
+
+        return tab_id
+
+    def _remove_empty_state_if_exists(self):
+        for tab_id, tab_info in list(self.tabs.items()):
+            if tab_info.get('is_empty_state', False):
+                frame = tab_info['frame']
+                for idx in range(self.notebook.index('end')):
+                    if self.notebook.nametowidget(self.notebook.tabs()[idx]) == frame:
+                        self.notebook.forget(idx)
+                        break
+                del self.tabs[tab_id]
+                break
+
     def _get_tab_title_with_close(self, tab_id):
         title = self._get_tab_title(tab_id)
         return f"{title}  ✕"
@@ -190,6 +231,7 @@ class TextEditor:
         return None
 
     def _new_file(self):
+        self._remove_empty_state_if_exists()
         self._create_new_tab()
 
     def _open_file(self):
@@ -201,6 +243,7 @@ class TextEditor:
             try:
                 with open(file_path, "r", encoding="utf-8") as file_handle:
                     content = file_handle.read()
+                    self._remove_empty_state_if_exists()
                     self._create_new_tab(content=content, file_path=file_path)
             except OSError as error:
                 messagebox.showerror("Open Error", f"Could not open file:\n{error}")
@@ -211,6 +254,11 @@ class TextEditor:
             return
 
         tab_info = self.tabs[tab_id]
+
+        # Don't save empty state tab
+        if tab_info.get('is_empty_state', False):
+            return
+
         file_path = tab_info['file_path']
 
         if not file_path:
@@ -240,6 +288,10 @@ class TextEditor:
             return
 
         tab_info = self.tabs[tab_id]
+
+        # Don't allow closing empty state tab
+        if tab_info.get('is_empty_state', False):
+            return
 
         # Check if modified
         if tab_info['modified']:
@@ -282,9 +334,9 @@ class TextEditor:
         # Remove from tracking
         del self.tabs[tab_id]
 
-        # If no tabs left, create a new one
+        # If no tabs left, create an empty state tab
         if len(self.tabs) == 0:
-            self._create_new_tab()
+            self._create_empty_state_tab()
 
     def _exit_app(self):
         # Check all tabs for unsaved changes
