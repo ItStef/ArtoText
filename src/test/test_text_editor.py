@@ -280,6 +280,152 @@ class TestTextEditor(unittest.TestCase):
         # After redo, content should match the state after insert
         self.assertEqual(content_after_insert, content_after_redo)
 
+    def test_find_dialog_opens(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Open find dialog
+        self.editor._open_find_dialog()
+        self.assertIsNotNone(self.editor.find_dialog)
+        self.assertTrue(self.editor.find_dialog.winfo_exists())
+        # Close the dialog
+        self.editor.find_dialog.destroy()
+
+    def test_find_dialog_keyboard_shortcut(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Simulate Ctrl+F
+        self.root.event_generate('<Control-f>')
+        self.root.update()
+        self.assertIsNotNone(self.editor.find_dialog)
+        self.assertTrue(self.editor.find_dialog.winfo_exists())
+        # Close the dialog
+        self.editor.find_dialog.destroy()
+
+    def test_find_next_searches_text(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Set up text with searchable content
+        test_content = "Hello world\nHello Python\nHello ArtoText"
+        self.editor.set_text(test_content)
+
+        # Open find dialog
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "Hello")
+
+        # Find first instance
+        self.editor._find_next()
+        text_widget = self.editor._get_current_text_widget()
+
+        # Check if text is highlighted
+        tags = text_widget.tag_ranges("highlight")
+        self.assertTrue(len(tags) > 0)
+
+        # Close the dialog
+        self.editor.find_dialog.destroy()
+
+    def test_find_next_wraps_around(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Set up text with searchable content
+        test_content = "First match\nSecond match"
+        self.editor.set_text(test_content)
+
+        # Open find dialog
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "match")
+
+        # Find first instance
+        self.editor._find_next()
+        # Find second instance
+        self.editor._find_next()
+        # Should wrap around to first instance
+        self.editor._find_next()
+
+        text_widget = self.editor._get_current_text_widget()
+        tags = text_widget.tag_ranges("highlight")
+        self.assertTrue(len(tags) > 0)
+
+        # Close the dialog
+        self.editor.find_dialog.destroy()
+
+    def test_find_previous_searches_backwards(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Set up text with searchable content
+        test_content = "Hello world\nHello Python\nHello ArtoText"
+        self.editor.set_text(test_content)
+
+        # Open find dialog
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "Hello")
+
+        # Find from beginning
+        self.editor._find_next()
+        self.editor._find_next()
+
+        # Now search backwards
+        self.editor._find_previous()
+
+        text_widget = self.editor._get_current_text_widget()
+        tags = text_widget.tag_ranges("highlight")
+        self.assertTrue(len(tags) > 0)
+
+        # Close the dialog
+        self.editor.find_dialog.destroy()
+
+    def test_find_menu_item_exists(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Check that Find menu item is in Edit menu
+        edit_menu_items = self.editor.edit_menu.index('end')
+        # Edit menu should have at least 4 items now (Cut, Copy, Paste, separator, Find)
+        self.assertGreaterEqual(edit_menu_items, 4)
+
+    def test_keyboard_shortcut_find_next(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        test_content = "Hello world\nHello Python"
+        self.editor.set_text(test_content)
+
+        # Open find dialog and set search term
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "Hello")
+
+        # Simulate Ctrl+Down for find next
+        self.root.event_generate('<Control-Down>')
+        self.root.update()
+
+        text_widget = self.editor._get_current_text_widget()
+        tags = text_widget.tag_ranges("highlight")
+        self.assertTrue(len(tags) > 0)
+
+        # Close the dialog
+        self.editor.find_dialog.destroy()
+
+    def test_keyboard_shortcut_find_previous(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        test_content = "Hello world\nHello Python"
+        self.editor.set_text(test_content)
+
+        # Open find dialog and set search term
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "Hello")
+
+        # First find next to get to first match
+        self.editor._find_next()
+
+        # Then simulate Ctrl+Up for find previous
+        self.root.event_generate('<Control-Up>')
+        self.root.update()
+
+        text_widget = self.editor._get_current_text_widget()
+        tags = text_widget.tag_ranges("highlight")
+        self.assertTrue(len(tags) > 0)
+
+        # Close the dialog
+        self.editor.find_dialog.destroy()
+
 
 if __name__ == '__main__':
     unittest.main()

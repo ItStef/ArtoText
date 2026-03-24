@@ -20,6 +20,11 @@ class TextEditor:
         self.tabs = {}
         self.tab_counter = 0
 
+        # Find functionality state
+        self.find_dialog = None
+        self.find_text = ""
+        self.last_search_index = "1.0"
+
         # Create menu bar
         self._create_menu_bar()
 
@@ -52,6 +57,8 @@ class TextEditor:
         self.edit_menu.add_command(label="Cut", command=self._cut_text)
         self.edit_menu.add_command(label="Copy", command=self._copy_text)
         self.edit_menu.add_command(label="Paste", command=self._paste_text)
+        self.edit_menu.add_separator()
+        self.edit_menu.add_command(label="Find", command=self._open_find_dialog)
 
     def _create_notebook(self):
         self.notebook = ttk.Notebook(self.root)
@@ -396,12 +403,163 @@ class TextEditor:
             except tk.TclError:
                 pass
 
+    def _open_find_dialog(self):
+        text_widget = self._get_current_text_widget()
+        if not text_widget:
+            return
+
+        if self.find_dialog is not None and self.find_dialog.winfo_exists():
+            self.find_dialog.lift()
+            self.find_dialog.focus()
+            return
+
+        self.find_dialog = tk.Toplevel(self.root)
+        self.find_dialog.title("Find")
+        self.find_dialog.geometry("400x100")
+        self.find_dialog.resizable(False, False)
+
+        # Make it stay on top
+        self.find_dialog.transient(self.root)
+
+        # Create frame for find controls
+        find_frame = tk.Frame(self.find_dialog)
+        find_frame.pack(fill='both', expand=True, padx=10, pady=10)
+
+        # Search entry
+        tk.Label(find_frame, text="Find:").grid(row=0, column=0, sticky='w', padx=5, pady=5)
+        self.find_entry = tk.Entry(find_frame, width=30)
+        self.find_entry.grid(row=0, column=1, columnspan=2, padx=5, pady=5, sticky='ew')
+        self.find_entry.focus()
+
+        # Bind Enter to find next
+        self.find_entry.bind('<Return>', lambda e: self._find_next())
+
+        # Navigation buttons
+        prev_button = tk.Button(find_frame, text="↑ Previous", command=self._find_previous)
+        prev_button.grid(row=1, column=1, padx=5, pady=5, sticky='ew')
+
+        next_button = tk.Button(find_frame, text="↓ Next", command=self._find_next)
+        next_button.grid(row=1, column=2, padx=5, pady=5, sticky='ew')
+
+        find_frame.columnconfigure(1, weight=1)
+        find_frame.columnconfigure(2, weight=1)
+
+    def _find_next(self):
+        text_widget = self._get_current_text_widget()
+        if not text_widget:
+            return
+
+        if self.find_dialog is None or not self.find_dialog.winfo_exists():
+            self._open_find_dialog()
+            return
+
+        search_term = self.find_entry.get()
+        if not search_term:
+            return
+
+        # Clear previous highlighting
+        text_widget.tag_remove("highlight", "1.0", tk.END)
+
+        # If search term changed, start from beginning
+        if search_term != self.find_text:
+            self.find_text = search_term
+            self.last_search_index = "1.0"
+
+        # Search for the text starting from last position
+        start_pos = self.last_search_index
+        pos = text_widget.search(search_term, start_pos, tk.END)
+
+        if pos:
+            # Calculate end position
+            end_pos = f"{pos}+{len(search_term)}c"
+
+            # Highlight the found text
+            text_widget.tag_configure("highlight", background="yellow", foreground="black")
+            text_widget.tag_add("highlight", pos, end_pos)
+
+            # Scroll to make the text visible
+            text_widget.see(pos)
+
+            # Update last search position for next search
+            self.last_search_index = end_pos
+        else:
+            # No match found, wrap around to beginning
+            pos = text_widget.search(search_term, "1.0", tk.END)
+            if pos:
+                end_pos = f"{pos}+{len(search_term)}c"
+                text_widget.tag_configure("highlight", background="yellow", foreground="black")
+                text_widget.tag_add("highlight", pos, end_pos)
+                text_widget.see(pos)
+                self.last_search_index = end_pos
+            else:
+                # No match found at all
+                self.last_search_index = "1.0"
+
+    def _find_previous(self):
+        text_widget = self._get_current_text_widget()
+        if not text_widget:
+            return
+
+        if self.find_dialog is None or not self.find_dialog.winfo_exists():
+            self._open_find_dialog()
+            return
+
+        search_term = self.find_entry.get()
+        if not search_term:
+            return
+
+        # Clear previous highlighting
+        text_widget.tag_remove("highlight", "1.0", tk.END)
+
+        # If search term changed, start from end
+        if search_term != self.find_text:
+            self.find_text = search_term
+            self.last_search_index = tk.END
+
+        # Search backwards from current position
+        if self.last_search_index == "1.0":
+            start_pos = tk.END
+        else:
+            # Move back to start of current match, then search backwards
+            start_pos = f"{self.last_search_index}-{len(search_term)}c"
+
+        pos = text_widget.search(search_term, start_pos, "1.0", backwards=True)
+
+        if pos:
+            # Calculate end position
+            end_pos = f"{pos}+{len(search_term)}c"
+
+            # Highlight the found text
+            text_widget.tag_configure("highlight", background="yellow", foreground="black")
+            text_widget.tag_add("highlight", pos, end_pos)
+
+            # Scroll to make the text visible
+            text_widget.see(pos)
+
+            # Update last search position
+            self.last_search_index = pos
+        else:
+            # No match found, wrap around to end
+            pos = text_widget.search(search_term, tk.END, "1.0", backwards=True)
+            if pos:
+                end_pos = f"{pos}+{len(search_term)}c"
+                text_widget.tag_configure("highlight", background="yellow", foreground="black")
+                text_widget.tag_add("highlight", pos, end_pos)
+                text_widget.see(pos)
+                self.last_search_index = pos
+            else:
+                # No match found at all
+                self.last_search_index = tk.END
+
     def _setup_keybindings(self):
         self.root.bind('<Control-s>', lambda e: self._save_file())
         self.root.bind('<Control-n>', lambda e: self._new_file())
         self.root.bind('<Control-x>', lambda e: self._close_tab())
         self.root.bind('<Control-z>', lambda e: self._undo_text())
         self.root.bind('<Control-y>', lambda e: self._redo_text())
+        self.root.bind('<Control-f>', lambda e: self._open_find_dialog())
+        self.root.bind('<Control-Up>', lambda e: self._find_previous())
+        self.root.bind('<Control-Down>', lambda e: self._find_next())
 
     def get_text(self):
         text_widget = self._get_current_text_widget()
