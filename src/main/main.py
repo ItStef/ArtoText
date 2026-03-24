@@ -6,9 +6,6 @@ from text_editor import TextEditor
 
 
 def main():
-    """
-    Main function to run the ArtoText application
-    """
     root = tk.Tk()
     app = TextEditor(root)
     root.mainloop()

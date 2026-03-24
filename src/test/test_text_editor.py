@@ -17,9 +17,6 @@ class TestTextEditor(unittest.TestCase):
     """
 
     def setUp(self):
-        """
-        Set up test fixtures before each test
-        """
         try:
             self.root = tk.Tk()
             self.editor = TextEditor(self.root)
@@ -29,16 +26,10 @@ class TestTextEditor(unittest.TestCase):
             self.display_available = False
 
     def tearDown(self):
-        """
-        Clean up after each test
-        """
         if self.display_available:
             self.root.destroy()
 
     def test_initialization(self):
-        """
-        Test that the text editor initializes correctly
-        """
         if not self.display_available:
             self.skipTest("No display available")
         self.assertIsNotNone(self.editor)
@@ -47,9 +38,6 @@ class TestTextEditor(unittest.TestCase):
         self.assertEqual(self.root.title(), "ArtoText - Text Editor")
 
     def test_get_text_empty(self):
-        """
-        Test getting text from an empty editor
-        """
         if not self.display_available:
             self.skipTest("No display available")
         text = self.editor.get_text()
@@ -57,9 +45,6 @@ class TestTextEditor(unittest.TestCase):
         self.assertEqual(text, "\n")
 
     def test_set_and_get_text(self):
-        """
-        Test setting and getting text content
-        """
         if not self.display_available:
             self.skipTest("No display available")
         test_content = "Hello, ArtoText!"
@@ -69,9 +54,6 @@ class TestTextEditor(unittest.TestCase):
         self.assertEqual(retrieved_text.rstrip('\n'), test_content)
 
     def test_new_file_clears_text(self):
-        """
-        Test that new file operation clears the text area
-        """
         if not self.display_available:
             self.skipTest("No display available")
         self.editor.set_text("Some content")
@@ -80,9 +62,6 @@ class TestTextEditor(unittest.TestCase):
         self.assertEqual(text, "\n")
 
     def test_menu_bar_exists(self):
-        """
-        Test that menu bar is created
-        """
         if not self.display_available:
             self.skipTest("No display available")
         self.assertIsNotNone(self.editor.menu_bar)
@@ -90,9 +69,6 @@ class TestTextEditor(unittest.TestCase):
         self.assertIsNotNone(self.editor.edit_menu)
 
     def test_text_area_properties(self):
-        """
-        Test that text area has correct properties
-        """
         if not self.display_available:
             self.skipTest("No display available")
         self.assertEqual(self.editor.text_area.cget("wrap"), tk.WORD)
