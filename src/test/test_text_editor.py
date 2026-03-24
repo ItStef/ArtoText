@@ -108,6 +108,43 @@ class TestTextEditor(unittest.TestCase):
             # Should not raise any error when dialog is cancelled
             self.editor._save_file()
 
+    def test_open_file_loads_content(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        import tempfile
+        import os
+        from unittest.mock import patch
+
+        test_content = "This is the content from the opened file."
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as tmp:
+            tmp.write(test_content)
+            tmp_path = tmp.name
+
+        try:
+            with patch("tkinter.filedialog.askopenfilename", return_value=tmp_path):
+                self.editor._open_file()
+
+            loaded_text = self.editor.get_text()
+            self.assertEqual(loaded_text.rstrip('\n'), test_content)
+        finally:
+            os.unlink(tmp_path)
+
+    def test_open_file_cancelled_does_nothing(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        from unittest.mock import patch
+
+        self.editor.set_text("Original content")
+
+        with patch("tkinter.filedialog.askopenfilename", return_value=""):
+            # Should not raise any error when dialog is cancelled
+            self.editor._open_file()
+
+        # Content should remain unchanged
+        loaded_text = self.editor.get_text()
+        self.assertEqual(loaded_text.rstrip('\n'), "Original content")
+
 
 if __name__ == '__main__':
     unittest.main()
