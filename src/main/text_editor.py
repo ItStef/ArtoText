@@ -55,6 +55,8 @@ class TextEditor:
         self.notebook.pack(expand=True, fill='both')
         self.notebook.enable_traversal()
 
+        # Bind button clicks to handle tab selection and close button
+        self.notebook.bind('<ButtonRelease-1>', self._on_tab_click)
         # Bind middle-click to close tab
         self.notebook.bind('<Button-2>', self._on_tab_middle_click)
 
@@ -88,12 +90,43 @@ class TextEditor:
             'frame': tab_frame
         }
 
-        # Add tab to notebook
-        tab_title = self._get_tab_title(tab_id)
+        # Add tab to notebook with close button in title
+        tab_title = self._get_tab_title_with_close(tab_id)
         self.notebook.add(tab_frame, text=tab_title)
         self.notebook.select(tab_frame)
 
         return tab_id
+
+    def _get_tab_title_with_close(self, tab_id):
+        title = self._get_tab_title(tab_id)
+        return f"{title}  ✕"
+
+    def _on_tab_click(self, event):
+        # Check if click was on a tab
+        try:
+            clicked = self.notebook.tk.call(self.notebook._w, "identify", "tab", event.x, event.y)
+            if clicked == "":
+                return
+
+            # Get the clicked tab
+            tab_frame = self.notebook.nametowidget(self.notebook.tabs()[int(clicked)])
+
+            # Find the tab_id for this frame
+            for tab_id, tab_info in self.tabs.items():
+                if tab_info['frame'] == tab_frame:
+                    # Get tab text and check if click was on close button area
+                    # Approximate: check if click is on right ~15% of tab
+                    tab_bbox = self.notebook.bbox(int(clicked))
+                    if tab_bbox:
+                        tab_x, tab_y, tab_width, tab_height = tab_bbox
+                        # If click is in the rightmost portion (where X is), close the tab
+                        if event.x > tab_x + tab_width - 25:  # Approximate X button area
+                            self._close_tab(tab_id)
+                            # Prevent default tab selection when closing
+                            return "break"
+                    break
+        except (tk.TclError, ValueError, IndexError):
+            pass
 
     def _on_tab_middle_click(self, event):
         # Find which tab was clicked
@@ -130,13 +163,12 @@ class TextEditor:
     def _update_tab_title(self, tab_id):
         tab_info = self.tabs[tab_id]
         frame = tab_info['frame']
-        new_title = self._get_tab_title(tab_id)
+        new_title = self._get_tab_title_with_close(tab_id)
 
         for idx in range(self.notebook.index('end')):
-            if self.notebook.tab(idx, 'text') != new_title:
-                if self.notebook.nametowidget(self.notebook.tabs()[idx]) == frame:
-                    self.notebook.tab(idx, text=new_title)
-                    break
+            if self.notebook.nametowidget(self.notebook.tabs()[idx]) == frame:
+                self.notebook.tab(idx, text=new_title)
+                break
 
     def _get_current_tab_id(self):
         try:
