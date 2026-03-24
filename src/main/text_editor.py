@@ -408,6 +408,8 @@ class TextEditor:
 
     def _zoom_in(self):
         new_size = int(self.current_font_size * 1.1)
+        if new_size == self.current_font_size and self.current_font_size < 60:
+            new_size = self.current_font_size + 1
         if new_size <= 60:
             self.current_font_size = new_size
             self._update_all_fonts()

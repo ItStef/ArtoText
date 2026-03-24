@@ -365,6 +365,17 @@ class TestTextEditor(unittest.TestCase):
         # Should not go below 1pt (can't be 0)
         self.assertGreater(self.editor.current_font_size, 0)
 
+    def test_zoom_in_from_minimum(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Zoom out to minimum
+        for _ in range(50):
+            self.editor._zoom_out()
+        min_size = self.editor.current_font_size
+        # Should be able to zoom back in from minimum
+        self.editor._zoom_in()
+        self.assertGreater(self.editor.current_font_size, min_size)
+
 
 if __name__ == '__main__':
     unittest.main()
