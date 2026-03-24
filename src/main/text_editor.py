@@ -55,7 +55,17 @@ class TextEditor:
         self.text_area.delete(1.0, tk.END)
 
     def _open_file(self):
-        pass
+        file_path = filedialog.askopenfilename(
+            defaultextension=".txt",
+            filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+        )
+        if file_path:
+            try:
+                with open(file_path, "r", encoding="utf-8") as file_handle:
+                    content = file_handle.read()
+                    self.set_text(content)
+            except OSError as error:
+                messagebox.showerror("Open Error", f"Could not open file:\n{error}")
 
     def _save_file(self):
         file_path = filedialog.asksaveasfilename(
