@@ -280,6 +280,73 @@ class TestTextEditor(unittest.TestCase):
         # After redo, content should match the state after insert
         self.assertEqual(content_after_insert, content_after_redo)
 
+    def test_view_menu_exists(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        self.assertIsNotNone(self.editor.view_menu)
+
+    def test_zoom_in(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        initial_font_size = self.editor.current_font_size
+        self.editor._zoom_in()
+        self.assertGreater(self.editor.current_font_size, initial_font_size)
+
+    def test_zoom_out(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        initial_font_size = self.editor.current_font_size
+        self.editor._zoom_out()
+        self.assertLess(self.editor.current_font_size, initial_font_size)
+
+    def test_reset_zoom(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        self.editor._zoom_in()
+        self.editor._zoom_in()
+        self.assertNotEqual(self.editor.current_font_size, 12)
+        self.editor._reset_zoom()
+        self.assertEqual(self.editor.current_font_size, 12)
+
+    def test_zoom_in_keyboard_shortcut(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        initial_font_size = self.editor.current_font_size
+        self.root.event_generate('<Control-minus>')
+        self.root.update()
+        self.assertGreater(self.editor.current_font_size, initial_font_size)
+
+    def test_zoom_out_keyboard_shortcut(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        initial_font_size = self.editor.current_font_size
+        self.root.event_generate('<Control-equal>')
+        self.root.update()
+        self.assertLess(self.editor.current_font_size, initial_font_size)
+
+    def test_zoom_applies_to_all_tabs(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Create multiple tabs
+        self.editor._new_file()
+        self.editor._new_file()
+
+        # Zoom in
+        self.editor._zoom_in()
+
+        # Check all tabs have the same font size
+        for tab_id, tab_info in self.editor.tabs.items():
+            text_widget = tab_info.get('text_widget')
+            if text_widget:
+                font = text_widget.cget('font')
+                # Font can be returned as a string or tuple, need to parse it
+                if isinstance(font, str):
+                    # Font is returned as string like "Arial 13"
+                    font_size = int(font.split()[-1])
+                else:
+                    font_size = font[1]
+                self.assertEqual(font_size, self.editor.current_font_size)
+
 
 if __name__ == '__main__':
     unittest.main()

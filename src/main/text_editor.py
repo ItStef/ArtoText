@@ -20,6 +20,9 @@ class TextEditor:
         self.tabs = {}
         self.tab_counter = 0
 
+        # Zoom tracking: default font size is 12pt (100%)
+        self.current_font_size = 12
+
         # Create menu bar
         self._create_menu_bar()
 
@@ -53,6 +56,13 @@ class TextEditor:
         self.edit_menu.add_command(label="Copy", command=self._copy_text)
         self.edit_menu.add_command(label="Paste", command=self._paste_text)
 
+        # View menu
+        self.view_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="View", menu=self.view_menu)
+        self.view_menu.add_command(label="Zoom In", command=self._zoom_in)
+        self.view_menu.add_command(label="Zoom Out", command=self._zoom_out)
+        self.view_menu.add_command(label="Reset Zoom", command=self._reset_zoom)
+
     def _create_notebook(self):
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(expand=True, fill='both')
@@ -75,7 +85,7 @@ class TextEditor:
             wrap=tk.WORD,
             width=100,
             height=30,
-            font=("Arial", 12),
+            font=("Arial", self.current_font_size),
             undo=True,
             maxundo=-1
         )
@@ -396,12 +406,32 @@ class TextEditor:
             except tk.TclError:
                 pass
 
+    def _zoom_in(self):
+        self.current_font_size = int(self.current_font_size * 1.1)
+        self._update_all_fonts()
+
+    def _zoom_out(self):
+        self.current_font_size = int(self.current_font_size * 0.9)
+        self._update_all_fonts()
+
+    def _reset_zoom(self):
+        self.current_font_size = 12
+        self._update_all_fonts()
+
+    def _update_all_fonts(self):
+        for tab_id, tab_info in self.tabs.items():
+            text_widget = tab_info.get('text_widget')
+            if text_widget:
+                text_widget.configure(font=("Arial", self.current_font_size))
+
     def _setup_keybindings(self):
         self.root.bind('<Control-s>', lambda e: self._save_file())
         self.root.bind('<Control-n>', lambda e: self._new_file())
         self.root.bind('<Control-x>', lambda e: self._close_tab())
         self.root.bind('<Control-z>', lambda e: self._undo_text())
         self.root.bind('<Control-y>', lambda e: self._redo_text())
+        self.root.bind('<Control-minus>', lambda e: self._zoom_in())
+        self.root.bind('<Control-equal>', lambda e: self._zoom_out())
 
     def get_text(self):
         text_widget = self._get_current_text_widget()
