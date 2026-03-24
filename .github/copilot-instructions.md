@@ -11,8 +11,6 @@ ArtoText is a desktop text editor application. It allows users to open, edit, an
 ## Code Style Rules
 - Use meaningful variable names — no single letters except loop counters
 - Every new feature must have at least one unit test
-- Keep methods short (under 30 lines if possible)
-- Add a comment above every public method explaining what it does
 - Only write comments when the code itself is not self-explanatory or the name of the method is not self-explanatory
 - Write short comments for things that a reader out of context would not be able to guess, only when it isnt self-explanatory
 
