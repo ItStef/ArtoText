@@ -194,6 +194,92 @@ class TestTextEditor(unittest.TestCase):
         remaining_tab_id = list(self.editor.tabs.keys())[0]
         self.assertTrue(self.editor.tabs[remaining_tab_id].get('is_empty_state', False))
 
+    def test_keyboard_shortcut_save(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        import tempfile
+        import os
+        from unittest.mock import patch
+
+        test_content = "Test content for Ctrl+S"
+        self.editor.set_text(test_content)
+
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            with patch("tkinter.filedialog.asksaveasfilename", return_value=tmp_path):
+                # Simulate Ctrl+S
+                self.root.event_generate('<Control-s>')
+                self.root.update()
+
+            with open(tmp_path, "r", encoding="utf-8") as file_handle:
+                saved = file_handle.read()
+
+            self.assertEqual(saved.rstrip('\n'), test_content)
+        finally:
+            os.unlink(tmp_path)
+
+    def test_keyboard_shortcut_new_file(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        initial_tab_count = len(self.editor.tabs)
+        # Simulate Ctrl+N
+        self.root.event_generate('<Control-n>')
+        self.root.update()
+        self.assertEqual(len(self.editor.tabs), initial_tab_count + 1)
+
+    def test_keyboard_shortcut_close_tab(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Create extra tabs
+        self.editor._new_file()
+        self.editor._new_file()
+        self.assertEqual(len(self.editor.tabs), 3)
+
+        # Simulate Ctrl+X
+        self.root.event_generate('<Control-x>')
+        self.root.update()
+        self.assertEqual(len(self.editor.tabs), 2)
+
+    def test_keyboard_shortcut_undo(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        text_widget = self.editor._get_current_text_widget()
+        # Type some text
+        text_widget.insert(1.0, "First line\n")
+        text_widget.insert(tk.END, "Second line\n")
+        content_before_undo = text_widget.get(1.0, tk.END)
+
+        # Simulate Ctrl+Z (undo)
+        self.root.event_generate('<Control-z>')
+        self.root.update()
+
+        content_after_undo = text_widget.get(1.0, tk.END)
+        # Content should be different after undo
+        self.assertNotEqual(content_before_undo, content_after_undo)
+
+    def test_keyboard_shortcut_redo(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        text_widget = self.editor._get_current_text_widget()
+        # Type some text
+        text_widget.insert(1.0, "Test text")
+        content_after_insert = text_widget.get(1.0, tk.END)
+
+        # Undo
+        self.root.event_generate('<Control-z>')
+        self.root.update()
+        content_after_undo = text_widget.get(1.0, tk.END)
+
+        # Redo (Ctrl+Y)
+        self.root.event_generate('<Control-y>')
+        self.root.update()
+        content_after_redo = text_widget.get(1.0, tk.END)
+
+        # After redo, content should match the state after insert
+        self.assertEqual(content_after_insert, content_after_redo)
+
 
 if __name__ == '__main__':
     unittest.main()
