@@ -29,6 +29,9 @@ class TextEditor:
         # Create initial tab
         self._create_new_tab()
 
+        # Set up keyboard shortcuts
+        self._setup_keybindings()
+
     def _create_menu_bar(self):
         self.menu_bar = tk.Menu(self.root)
         self.root.config(menu=self.menu_bar)
@@ -72,7 +75,9 @@ class TextEditor:
             wrap=tk.WORD,
             width=100,
             height=30,
-            font=("Arial", 12)
+            font=("Arial", 12),
+            undo=True,
+            maxundo=-1
         )
         text_widget.pack(expand=True, fill='both')
 
@@ -374,6 +379,29 @@ class TextEditor:
                 text_widget.event_generate("<<Paste>>")
             except tk.TclError:
                 pass
+
+    def _undo_text(self):
+        text_widget = self._get_current_text_widget()
+        if text_widget:
+            try:
+                text_widget.edit_undo()
+            except tk.TclError:
+                pass
+
+    def _redo_text(self):
+        text_widget = self._get_current_text_widget()
+        if text_widget:
+            try:
+                text_widget.edit_redo()
+            except tk.TclError:
+                pass
+
+    def _setup_keybindings(self):
+        self.root.bind('<Control-s>', lambda e: self._save_file())
+        self.root.bind('<Control-n>', lambda e: self._new_file())
+        self.root.bind('<Control-x>', lambda e: self._close_tab())
+        self.root.bind('<Control-z>', lambda e: self._undo_text())
+        self.root.bind('<Control-y>', lambda e: self._redo_text())
 
     def get_text(self):
         text_widget = self._get_current_text_widget()
