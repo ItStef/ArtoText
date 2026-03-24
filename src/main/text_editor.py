@@ -434,6 +434,10 @@ class TextEditor:
         # Bind Enter to find next
         self.find_entry.bind('<Return>', lambda e: self._find_next())
 
+        # Bind Escape to close dialog and clear highlighting
+        self.find_dialog.bind('<Escape>', lambda e: self._close_find_dialog())
+        self.find_entry.bind('<Escape>', lambda e: self._close_find_dialog())
+
         # Navigation buttons
         prev_button = tk.Button(find_frame, text="↑ Previous", command=self._find_previous)
         prev_button.grid(row=1, column=1, padx=5, pady=5, sticky='ew')
@@ -443,6 +447,18 @@ class TextEditor:
 
         find_frame.columnconfigure(1, weight=1)
         find_frame.columnconfigure(2, weight=1)
+
+    def _close_find_dialog(self):
+        text_widget = self._get_current_text_widget()
+        if text_widget:
+            text_widget.tag_remove("highlight", "1.0", tk.END)
+
+        if self.find_dialog is not None and self.find_dialog.winfo_exists():
+            self.find_dialog.destroy()
+            self.find_dialog = None
+
+        self.find_text = ""
+        self.last_search_index = "1.0"
 
     def _find_next(self):
         text_widget = self._get_current_text_widget()
@@ -558,8 +574,8 @@ class TextEditor:
         self.root.bind('<Control-z>', lambda e: self._undo_text())
         self.root.bind('<Control-y>', lambda e: self._redo_text())
         self.root.bind('<Control-f>', lambda e: self._open_find_dialog())
-        self.root.bind('<Control-Up>', lambda e: self._find_previous())
-        self.root.bind('<Control-Down>', lambda e: self._find_next())
+        self.root.bind('<Control-k>', lambda e: self._find_previous())
+        self.root.bind('<Control-j>', lambda e: self._find_next())
 
     def get_text(self):
         text_widget = self._get_current_text_widget()

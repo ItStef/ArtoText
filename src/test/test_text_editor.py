@@ -391,8 +391,8 @@ class TestTextEditor(unittest.TestCase):
         self.editor._open_find_dialog()
         self.editor.find_entry.insert(0, "Hello")
 
-        # Simulate Ctrl+Down for find next
-        self.root.event_generate('<Control-Down>')
+        # Simulate Ctrl+J for find next
+        self.root.event_generate('<Control-j>')
         self.root.update()
 
         text_widget = self.editor._get_current_text_widget()
@@ -415,8 +415,8 @@ class TestTextEditor(unittest.TestCase):
         # First find next to get to first match
         self.editor._find_next()
 
-        # Then simulate Ctrl+Up for find previous
-        self.root.event_generate('<Control-Up>')
+        # Then simulate Ctrl+K for find previous
+        self.root.event_generate('<Control-k>')
         self.root.update()
 
         text_widget = self.editor._get_current_text_widget()
@@ -425,6 +425,34 @@ class TestTextEditor(unittest.TestCase):
 
         # Close the dialog
         self.editor.find_dialog.destroy()
+
+    def test_escape_closes_find_dialog(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        test_content = "Hello world\nHello Python"
+        self.editor.set_text(test_content)
+
+        # Open find dialog and set search term
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "Hello")
+
+        # Find first match to highlight it
+        self.editor._find_next()
+
+        text_widget = self.editor._get_current_text_widget()
+        tags = text_widget.tag_ranges("highlight")
+        self.assertTrue(len(tags) > 0)
+
+        # Simulate Escape key
+        self.editor.find_dialog.event_generate('<Escape>')
+        self.root.update()
+
+        # Check dialog is closed
+        self.assertIsNone(self.editor.find_dialog)
+
+        # Check highlighting is removed
+        tags_after = text_widget.tag_ranges("highlight")
+        self.assertEqual(len(tags_after), 0)
 
 
 if __name__ == '__main__':
