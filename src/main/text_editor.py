@@ -61,6 +61,13 @@ class TextEditor:
         self.edit_menu.add_separator()
         self.edit_menu.add_command(label="Find", command=self._open_find_dialog)
 
+        # View menu
+        self.view_menu = tk.Menu(self.menu_bar, tearoff=0)
+        self.menu_bar.add_cascade(label="View", menu=self.view_menu)
+        self.view_menu.add_command(label="Zoom In", command=self._zoom_in)
+        self.view_menu.add_command(label="Zoom Out", command=self._zoom_out)
+        self.view_menu.add_command(label="Reset Zoom", command=self._reset_zoom)
+
     def _create_notebook(self):
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(expand=True, fill='both')
@@ -83,7 +90,7 @@ class TextEditor:
             wrap=tk.WORD,
             width=100,
             height=30,
-            font=("Arial", 12),
+            font=("Arial", self.current_font_size),
             undo=True,
             maxundo=-1
         )
