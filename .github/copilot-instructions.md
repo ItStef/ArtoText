@@ -4,9 +4,9 @@
 ArtoText is a desktop text editor application. It allows users to open, edit, and save text files.
 
 ## Language & Framework
-- Language: [e.g. Java, Kotlin, Python — fill in yours]
-- UI Framework: [e.g. JavaFX, Swing, Tkinter — fill in yours]
-- Build Tool: [e.g. Gradle, Maven, pip — fill in yours]
+- Language: [Python]
+- UI Framework: [Tkinter]
+- Build Tool: [pip]
 
 ## Code Style Rules
 - Use meaningful variable names — no single letters except loop counters
