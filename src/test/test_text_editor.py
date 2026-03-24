@@ -33,9 +33,11 @@ class TestTextEditor(unittest.TestCase):
         if not self.display_available:
             self.skipTest("No display available")
         self.assertIsNotNone(self.editor)
-        self.assertIsNotNone(self.editor.text_area)
+        self.assertIsNotNone(self.editor.notebook)
         self.assertIsNotNone(self.editor.menu_bar)
         self.assertEqual(self.root.title(), "ArtoText - Text Editor")
+        # Should have one initial tab
+        self.assertEqual(len(self.editor.tabs), 1)
 
     def test_get_text_empty(self):
         if not self.display_available:
@@ -57,9 +59,10 @@ class TestTextEditor(unittest.TestCase):
         if not self.display_available:
             self.skipTest("No display available")
         self.editor.set_text("Some content")
+        initial_tab_count = len(self.editor.tabs)
         self.editor._new_file()
-        text = self.editor.get_text()
-        self.assertEqual(text, "\n")
+        # Should create a new tab instead of clearing
+        self.assertEqual(len(self.editor.tabs), initial_tab_count + 1)
 
     def test_menu_bar_exists(self):
         if not self.display_available:
@@ -71,8 +74,9 @@ class TestTextEditor(unittest.TestCase):
     def test_text_area_properties(self):
         if not self.display_available:
             self.skipTest("No display available")
-        self.assertEqual(self.editor.text_area.cget("wrap"), tk.WORD)
-        self.assertIsNotNone(self.editor.text_area)
+        text_widget = self.editor._get_current_text_widget()
+        self.assertIsNotNone(text_widget)
+        self.assertEqual(text_widget.cget("wrap"), tk.WORD)
 
 
     def test_save_file_writes_content(self):
@@ -116,6 +120,7 @@ class TestTextEditor(unittest.TestCase):
         from unittest.mock import patch
 
         test_content = "This is the content from the opened file."
+        initial_tab_count = len(self.editor.tabs)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as tmp:
             tmp.write(test_content)
@@ -125,6 +130,8 @@ class TestTextEditor(unittest.TestCase):
             with patch("tkinter.filedialog.askopenfilename", return_value=tmp_path):
                 self.editor._open_file()
 
+            # Should create a new tab
+            self.assertEqual(len(self.editor.tabs), initial_tab_count + 1)
             loaded_text = self.editor.get_text()
             self.assertEqual(loaded_text.rstrip('\n'), test_content)
         finally:
@@ -136,14 +143,56 @@ class TestTextEditor(unittest.TestCase):
         from unittest.mock import patch
 
         self.editor.set_text("Original content")
+        initial_tab_count = len(self.editor.tabs)
 
         with patch("tkinter.filedialog.askopenfilename", return_value=""):
             # Should not raise any error when dialog is cancelled
             self.editor._open_file()
 
+        # Should not create a new tab
+        self.assertEqual(len(self.editor.tabs), initial_tab_count)
         # Content should remain unchanged
         loaded_text = self.editor.get_text()
         self.assertEqual(loaded_text.rstrip('\n'), "Original content")
+
+    def test_multiple_tabs(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Should start with one tab
+        self.assertEqual(len(self.editor.tabs), 1)
+
+        # Create new tabs
+        self.editor._new_file()
+        self.assertEqual(len(self.editor.tabs), 2)
+
+        self.editor._new_file()
+        self.assertEqual(len(self.editor.tabs), 3)
+
+    def test_close_tab(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Create multiple tabs
+        self.editor._new_file()
+        self.editor._new_file()
+        self.assertEqual(len(self.editor.tabs), 3)
+
+        # Close one tab
+        tab_id = self.editor._get_current_tab_id()
+        self.editor._close_tab(tab_id)
+        self.assertEqual(len(self.editor.tabs), 2)
+
+    def test_close_last_tab_creates_new_one(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Close the only tab
+        tab_id = self.editor._get_current_tab_id()
+        self.editor._close_tab(tab_id)
+
+        # Should create an empty state tab
+        self.assertEqual(len(self.editor.tabs), 1)
+        # Check that it's an empty state tab
+        remaining_tab_id = list(self.editor.tabs.keys())[0]
+        self.assertTrue(self.editor.tabs[remaining_tab_id].get('is_empty_state', False))
 
 
 if __name__ == '__main__':
