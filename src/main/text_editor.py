@@ -24,6 +24,7 @@ class TextEditor:
         self.find_dialog = None
         self.find_text = ""
         self.last_search_index = "1.0"
+        self.find_status_label = None
 
         # Create menu bar
         self._create_menu_bar()
@@ -415,11 +416,23 @@ class TextEditor:
 
         self.find_dialog = tk.Toplevel(self.root)
         self.find_dialog.title("Find")
-        self.find_dialog.geometry("400x100")
+        self.find_dialog.geometry("400x120")
         self.find_dialog.resizable(False, False)
 
         # Make it stay on top
         self.find_dialog.transient(self.root)
+
+        # Center the dialog relative to the main window
+        self.find_dialog.update_idletasks()
+        main_x = self.root.winfo_x()
+        main_y = self.root.winfo_y()
+        main_width = self.root.winfo_width()
+        main_height = self.root.winfo_height()
+        dialog_width = 400
+        dialog_height = 120
+        x = main_x + (main_width - dialog_width) // 2
+        y = main_y + (main_height - dialog_height) // 2
+        self.find_dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
 
         # Create frame for find controls
         find_frame = tk.Frame(self.find_dialog)
@@ -431,8 +444,9 @@ class TextEditor:
         self.find_entry.grid(row=0, column=1, columnspan=2, padx=5, pady=5, sticky='ew')
         self.find_entry.focus()
 
-        # Bind Enter to find next
+        # Bind Enter to find next and Shift+Enter to find previous
         self.find_entry.bind('<Return>', lambda e: self._find_next())
+        self.find_entry.bind('<Shift-Return>', lambda e: self._find_previous())
 
         # Bind Escape to close dialog and clear highlighting
         self.find_dialog.bind('<Escape>', lambda e: self._close_find_dialog())
@@ -444,6 +458,10 @@ class TextEditor:
 
         next_button = tk.Button(find_frame, text="↓ Next", command=self._find_next)
         next_button.grid(row=1, column=2, padx=5, pady=5, sticky='ew')
+
+        # Status label for "No instance found"
+        self.find_status_label = tk.Label(find_frame, text="", fg="red", font=("Arial", 9))
+        self.find_status_label.grid(row=2, column=0, columnspan=3, pady=(5, 0))
 
         find_frame.columnconfigure(1, weight=1)
         find_frame.columnconfigure(2, weight=1)
@@ -472,6 +490,10 @@ class TextEditor:
         search_term = self.find_entry.get()
         if not search_term:
             return
+
+        # Clear status message
+        if self.find_status_label:
+            self.find_status_label.config(text="")
 
         # Clear previous highlighting
         text_widget.tag_remove("highlight", "1.0", tk.END)
@@ -510,6 +532,8 @@ class TextEditor:
             else:
                 # No match found at all
                 self.last_search_index = "1.0"
+                if self.find_status_label:
+                    self.find_status_label.config(text="No instance found")
 
     def _find_previous(self):
         text_widget = self._get_current_text_widget()
@@ -523,6 +547,10 @@ class TextEditor:
         search_term = self.find_entry.get()
         if not search_term:
             return
+
+        # Clear status message
+        if self.find_status_label:
+            self.find_status_label.config(text="")
 
         # Clear previous highlighting
         text_widget.tag_remove("highlight", "1.0", tk.END)
@@ -566,6 +594,8 @@ class TextEditor:
             else:
                 # No match found at all
                 self.last_search_index = tk.END
+                if self.find_status_label:
+                    self.find_status_label.config(text="No instance found")
 
     def _setup_keybindings(self):
         self.root.bind('<Control-s>', lambda e: self._save_file())
@@ -574,8 +604,6 @@ class TextEditor:
         self.root.bind('<Control-z>', lambda e: self._undo_text())
         self.root.bind('<Control-y>', lambda e: self._redo_text())
         self.root.bind('<Control-f>', lambda e: self._open_find_dialog())
-        self.root.bind('<Control-k>', lambda e: self._find_previous())
-        self.root.bind('<Control-j>', lambda e: self._find_next())
 
     def get_text(self):
         text_widget = self._get_current_text_widget()

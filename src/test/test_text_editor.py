@@ -381,7 +381,7 @@ class TestTextEditor(unittest.TestCase):
         # Edit menu should have at least 4 items now (Cut, Copy, Paste, separator, Find)
         self.assertGreaterEqual(edit_menu_items, 4)
 
-    def test_keyboard_shortcut_find_next(self):
+    def test_keyboard_shortcut_enter_find_next(self):
         if not self.display_available:
             self.skipTest("No display available")
         test_content = "Hello world\nHello Python"
@@ -391,8 +391,8 @@ class TestTextEditor(unittest.TestCase):
         self.editor._open_find_dialog()
         self.editor.find_entry.insert(0, "Hello")
 
-        # Simulate Ctrl+J for find next
-        self.root.event_generate('<Control-j>')
+        # Simulate Enter for find next
+        self.editor.find_entry.event_generate('<Return>')
         self.root.update()
 
         text_widget = self.editor._get_current_text_widget()
@@ -402,7 +402,7 @@ class TestTextEditor(unittest.TestCase):
         # Close the dialog
         self.editor.find_dialog.destroy()
 
-    def test_keyboard_shortcut_find_previous(self):
+    def test_keyboard_shortcut_shift_enter_find_previous(self):
         if not self.display_available:
             self.skipTest("No display available")
         test_content = "Hello world\nHello Python"
@@ -415,13 +415,33 @@ class TestTextEditor(unittest.TestCase):
         # First find next to get to first match
         self.editor._find_next()
 
-        # Then simulate Ctrl+K for find previous
-        self.root.event_generate('<Control-k>')
+        # Then simulate Shift+Enter for find previous
+        self.editor.find_entry.event_generate('<Shift-Return>')
         self.root.update()
 
         text_widget = self.editor._get_current_text_widget()
         tags = text_widget.tag_ranges("highlight")
         self.assertTrue(len(tags) > 0)
+
+        # Close the dialog
+        self.editor.find_dialog.destroy()
+
+    def test_no_instance_found_message(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        test_content = "Hello world"
+        self.editor.set_text(test_content)
+
+        # Open find dialog and search for non-existent text
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "nonexistent")
+
+        # Try to find
+        self.editor._find_next()
+
+        # Check status message
+        self.assertIsNotNone(self.editor.find_status_label)
+        self.assertEqual(self.editor.find_status_label.cget("text"), "No instance found")
 
         # Close the dialog
         self.editor.find_dialog.destroy()
