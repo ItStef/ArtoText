@@ -75,5 +75,39 @@ class TestTextEditor(unittest.TestCase):
         self.assertIsNotNone(self.editor.text_area)
 
 
+    def test_save_file_writes_content(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        import tempfile
+        import os
+        from unittest.mock import patch
+
+        test_content = "Save this content to file."
+        self.editor.set_text(test_content)
+
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            with patch("tkinter.filedialog.asksaveasfilename", return_value=tmp_path):
+                self.editor._save_file()
+
+            with open(tmp_path, "r", encoding="utf-8") as file_handle:
+                saved = file_handle.read()
+
+            self.assertEqual(saved.rstrip('\n'), test_content)
+        finally:
+            os.unlink(tmp_path)
+
+    def test_save_file_cancelled_does_nothing(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        from unittest.mock import patch
+
+        with patch("tkinter.filedialog.asksaveasfilename", return_value=""):
+            # Should not raise any error when dialog is cancelled
+            self.editor._save_file()
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -2,7 +2,7 @@
 ArtoText - A simple desktop text editor
 """
 import tkinter as tk
-from tkinter import scrolledtext
+from tkinter import scrolledtext, filedialog, messagebox
 
 
 class TextEditor:
@@ -58,7 +58,16 @@ class TextEditor:
         pass
 
     def _save_file(self):
-        pass
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".txt",
+            filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+        )
+        if file_path:
+            try:
+                with open(file_path, "w", encoding="utf-8") as file_handle:
+                    file_handle.write(self.get_text())
+            except OSError as error:
+                messagebox.showerror("Save Error", f"Could not save file:\n{error}")
 
     def _exit_app(self):
         self.root.quit()
