@@ -407,12 +407,16 @@ class TextEditor:
                 pass
 
     def _zoom_in(self):
-        self.current_font_size = int(self.current_font_size * 1.1)
-        self._update_all_fonts()
+        new_size = int(self.current_font_size * 1.1)
+        if new_size <= 60:
+            self.current_font_size = new_size
+            self._update_all_fonts()
 
     def _zoom_out(self):
-        self.current_font_size = int(self.current_font_size * 0.9)
-        self._update_all_fonts()
+        new_size = int(self.current_font_size * 0.9)
+        if new_size > 0:
+            self.current_font_size = new_size
+            self._update_all_fonts()
 
     def _reset_zoom(self):
         self.current_font_size = 12
@@ -430,8 +434,8 @@ class TextEditor:
         self.root.bind('<Control-x>', lambda e: self._close_tab())
         self.root.bind('<Control-z>', lambda e: self._undo_text())
         self.root.bind('<Control-y>', lambda e: self._redo_text())
-        self.root.bind('<Control-minus>', lambda e: self._zoom_in())
-        self.root.bind('<Control-equal>', lambda e: self._zoom_out())
+        self.root.bind('<Control-equal>', lambda e: self._zoom_in())
+        self.root.bind('<Control-minus>', lambda e: self._zoom_out())
 
     def get_text(self):
         text_widget = self._get_current_text_widget()

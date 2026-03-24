@@ -312,7 +312,7 @@ class TestTextEditor(unittest.TestCase):
         if not self.display_available:
             self.skipTest("No display available")
         initial_font_size = self.editor.current_font_size
-        self.root.event_generate('<Control-minus>')
+        self.root.event_generate('<Control-equal>')
         self.root.update()
         self.assertGreater(self.editor.current_font_size, initial_font_size)
 
@@ -320,7 +320,7 @@ class TestTextEditor(unittest.TestCase):
         if not self.display_available:
             self.skipTest("No display available")
         initial_font_size = self.editor.current_font_size
-        self.root.event_generate('<Control-equal>')
+        self.root.event_generate('<Control-minus>')
         self.root.update()
         self.assertLess(self.editor.current_font_size, initial_font_size)
 
@@ -346,6 +346,24 @@ class TestTextEditor(unittest.TestCase):
                 else:
                     font_size = font[1]
                 self.assertEqual(font_size, self.editor.current_font_size)
+
+    def test_zoom_in_limit(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Zoom in multiple times to exceed limit
+        for _ in range(50):
+            self.editor._zoom_in()
+        # Should not exceed 60pt (500% of 12pt)
+        self.assertLessEqual(self.editor.current_font_size, 60)
+
+    def test_zoom_out_limit(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Zoom out multiple times to reach minimum
+        for _ in range(50):
+            self.editor._zoom_out()
+        # Should not go below 1pt (can't be 0)
+        self.assertGreater(self.editor.current_font_size, 0)
 
 
 if __name__ == '__main__':
