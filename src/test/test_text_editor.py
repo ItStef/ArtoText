@@ -280,101 +280,199 @@ class TestTextEditor(unittest.TestCase):
         # After redo, content should match the state after insert
         self.assertEqual(content_after_insert, content_after_redo)
 
-    def test_view_menu_exists(self):
+    def test_find_dialog_opens(self):
         if not self.display_available:
             self.skipTest("No display available")
-        self.assertIsNotNone(self.editor.view_menu)
+        # Open find dialog
+        self.editor._open_find_dialog()
+        self.assertIsNotNone(self.editor.find_dialog)
+        self.assertTrue(self.editor.find_dialog.winfo_exists())
+        # Close the dialog
+        self.editor.find_dialog.destroy()
 
-    def test_zoom_in(self):
+    def test_find_dialog_keyboard_shortcut(self):
         if not self.display_available:
             self.skipTest("No display available")
-        initial_font_size = self.editor.current_font_size
-        self.editor._zoom_in()
-        self.assertGreater(self.editor.current_font_size, initial_font_size)
-
-    def test_zoom_out(self):
-        if not self.display_available:
-            self.skipTest("No display available")
-        initial_font_size = self.editor.current_font_size
-        self.editor._zoom_out()
-        self.assertLess(self.editor.current_font_size, initial_font_size)
-
-    def test_reset_zoom(self):
-        if not self.display_available:
-            self.skipTest("No display available")
-        self.editor._zoom_in()
-        self.editor._zoom_in()
-        self.assertNotEqual(self.editor.current_font_size, 12)
-        self.editor._reset_zoom()
-        self.assertEqual(self.editor.current_font_size, 12)
-
-    def test_zoom_in_keyboard_shortcut(self):
-        if not self.display_available:
-            self.skipTest("No display available")
-        initial_font_size = self.editor.current_font_size
-        self.root.event_generate('<Control-equal>')
+        # Simulate Ctrl+F
+        self.root.event_generate('<Control-f>')
         self.root.update()
-        self.assertGreater(self.editor.current_font_size, initial_font_size)
+        self.assertIsNotNone(self.editor.find_dialog)
+        self.assertTrue(self.editor.find_dialog.winfo_exists())
+        # Close the dialog
+        self.editor.find_dialog.destroy()
 
-    def test_zoom_out_keyboard_shortcut(self):
+    def test_find_next_searches_text(self):
         if not self.display_available:
             self.skipTest("No display available")
-        initial_font_size = self.editor.current_font_size
-        self.root.event_generate('<Control-minus>')
+        # Set up text with searchable content
+        test_content = "Hello world\nHello Python\nHello ArtoText"
+        self.editor.set_text(test_content)
+
+        # Open find dialog
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "Hello")
+
+        # Find first instance
+        self.editor._find_next()
+        text_widget = self.editor._get_current_text_widget()
+
+        # Check if text is highlighted
+        tags = text_widget.tag_ranges("highlight")
+        self.assertTrue(len(tags) > 0)
+
+        # Close the dialog
+        self.editor.find_dialog.destroy()
+
+    def test_find_next_wraps_around(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Set up text with searchable content
+        test_content = "First match\nSecond match"
+        self.editor.set_text(test_content)
+
+        # Open find dialog
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "match")
+
+        # Find first instance
+        self.editor._find_next()
+        # Find second instance
+        self.editor._find_next()
+        # Should wrap around to first instance
+        self.editor._find_next()
+
+        text_widget = self.editor._get_current_text_widget()
+        tags = text_widget.tag_ranges("highlight")
+        self.assertTrue(len(tags) > 0)
+
+        # Close the dialog
+        self.editor.find_dialog.destroy()
+
+    def test_find_previous_searches_backwards(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Set up text with searchable content
+        test_content = "Hello world\nHello Python\nHello ArtoText"
+        self.editor.set_text(test_content)
+
+        # Open find dialog
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "Hello")
+
+        # Find from beginning
+        self.editor._find_next()
+        self.editor._find_next()
+
+        # Now search backwards
+        self.editor._find_previous()
+
+        text_widget = self.editor._get_current_text_widget()
+        tags = text_widget.tag_ranges("highlight")
+        self.assertTrue(len(tags) > 0)
+
+        # Close the dialog
+        self.editor.find_dialog.destroy()
+
+    def test_find_menu_item_exists(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        # Check that Find menu item is in Edit menu
+        edit_menu_items = self.editor.edit_menu.index('end')
+        # Edit menu should have at least 4 items now (Cut, Copy, Paste, separator, Find)
+        self.assertGreaterEqual(edit_menu_items, 4)
+
+    def test_keyboard_shortcut_enter_find_next(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        test_content = "Hello world\nHello Python"
+        self.editor.set_text(test_content)
+
+        # Open find dialog and set search term
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "Hello")
+
+        # Simulate Enter for find next
+        self.editor.find_entry.event_generate('<Return>')
         self.root.update()
-        self.assertLess(self.editor.current_font_size, initial_font_size)
 
-    def test_zoom_applies_to_all_tabs(self):
+        text_widget = self.editor._get_current_text_widget()
+        tags = text_widget.tag_ranges("highlight")
+        self.assertTrue(len(tags) > 0)
+
+        # Close the dialog
+        self.editor.find_dialog.destroy()
+
+    def test_keyboard_shortcut_shift_enter_find_previous(self):
         if not self.display_available:
             self.skipTest("No display available")
-        # Create multiple tabs
-        self.editor._new_file()
-        self.editor._new_file()
+        test_content = "Hello world\nHello Python"
+        self.editor.set_text(test_content)
 
-        # Zoom in
-        self.editor._zoom_in()
+        # Open find dialog and set search term
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "Hello")
 
-        # Check all tabs have the same font size
-        for tab_id, tab_info in self.editor.tabs.items():
-            text_widget = tab_info.get('text_widget')
-            if text_widget:
-                font = text_widget.cget('font')
-                # Font can be returned as a string or tuple, need to parse it
-                if isinstance(font, str):
-                    # Font is returned as string like "Arial 13"
-                    font_size = int(font.split()[-1])
-                else:
-                    font_size = font[1]
-                self.assertEqual(font_size, self.editor.current_font_size)
+        # First find next to get to first match
+        self.editor._find_next()
 
-    def test_zoom_in_limit(self):
+        # Then simulate Shift+Enter for find previous
+        self.editor.find_entry.event_generate('<Shift-Return>')
+        self.root.update()
+
+        text_widget = self.editor._get_current_text_widget()
+        tags = text_widget.tag_ranges("highlight")
+        self.assertTrue(len(tags) > 0)
+
+        # Close the dialog
+        self.editor.find_dialog.destroy()
+
+    def test_no_instance_found_message(self):
         if not self.display_available:
             self.skipTest("No display available")
-        # Zoom in multiple times to exceed limit
-        for _ in range(50):
-            self.editor._zoom_in()
-        # Should not exceed 60pt (500% of 12pt)
-        self.assertLessEqual(self.editor.current_font_size, 60)
+        test_content = "Hello world"
+        self.editor.set_text(test_content)
 
-    def test_zoom_out_limit(self):
+        # Open find dialog and search for non-existent text
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "nonexistent")
+
+        # Try to find
+        self.editor._find_next()
+
+        # Check status message
+        self.assertIsNotNone(self.editor.find_status_label)
+        self.assertEqual(self.editor.find_status_label.cget("text"), "No instance found")
+
+        # Close the dialog
+        self.editor.find_dialog.destroy()
+
+    def test_escape_closes_find_dialog(self):
         if not self.display_available:
             self.skipTest("No display available")
-        # Zoom out multiple times to reach minimum
-        for _ in range(50):
-            self.editor._zoom_out()
-        # Should not go below 1pt (can't be 0)
-        self.assertGreater(self.editor.current_font_size, 0)
+        test_content = "Hello world\nHello Python"
+        self.editor.set_text(test_content)
 
-    def test_zoom_in_from_minimum(self):
-        if not self.display_available:
-            self.skipTest("No display available")
-        # Zoom out to minimum
-        for _ in range(50):
-            self.editor._zoom_out()
-        min_size = self.editor.current_font_size
-        # Should be able to zoom back in from minimum
-        self.editor._zoom_in()
-        self.assertGreater(self.editor.current_font_size, min_size)
+        # Open find dialog and set search term
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "Hello")
+
+        # Find first match to highlight it
+        self.editor._find_next()
+
+        text_widget = self.editor._get_current_text_widget()
+        tags = text_widget.tag_ranges("highlight")
+        self.assertTrue(len(tags) > 0)
+
+        # Simulate Escape key
+        self.editor.find_dialog.event_generate('<Escape>')
+        self.root.update()
+
+        # Check dialog is closed
+        self.assertIsNone(self.editor.find_dialog)
+
+        # Check highlighting is removed
+        tags_after = text_widget.tag_ranges("highlight")
+        self.assertEqual(len(tags_after), 0)
 
 
 if __name__ == '__main__':
