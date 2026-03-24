@@ -7,7 +7,7 @@ This app is a practice project for learning about Github Copilot Agent system.
 
 - Basic text editing with a scrollable text area
 - Menu bar with File and Edit menus
-- New, Open, Save operations (Open and Save to be implemented)
+- New, Open, Save operations (Save opens a file dialog to choose location; Open to be implemented)
 - Cut, Copy, Paste functionality
 - Clean and simple UI built with Tkinter
 
