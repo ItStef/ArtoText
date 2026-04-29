@@ -376,6 +376,120 @@ class TestTextEditor(unittest.TestCase):
         self.editor._zoom_in()
         self.assertGreater(self.editor.current_font_size, min_size)
 
+    def test_find_dialog_opens(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        self.editor._open_find_dialog()
+        self.assertIsNotNone(self.editor.find_dialog)
+        self.assertTrue(self.editor.find_dialog.winfo_exists())
+        self.editor._close_find_dialog()
+
+    def test_find_dialog_keyboard_shortcut(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        self.root.event_generate('<Control-f>')
+        self.root.update()
+        self.assertIsNotNone(self.editor.find_dialog)
+        self.assertTrue(self.editor.find_dialog.winfo_exists())
+        self.editor._close_find_dialog()
+
+    def test_find_text_basic(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        test_text = "Hello World\nThis is a test\nHello again"
+        self.editor.set_text(test_text)
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "Hello")
+        self.editor._find_next()
+        text_widget = self.editor._get_current_text_widget()
+        # Check that search tag exists
+        ranges = text_widget.tag_ranges("search")
+        self.assertGreater(len(ranges), 0)
+        self.editor._close_find_dialog()
+
+    def test_find_text_case_insensitive(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        test_text = "Hello World"
+        self.editor.set_text(test_text)
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "hello")
+        self.editor._find_next()
+        text_widget = self.editor._get_current_text_widget()
+        ranges = text_widget.tag_ranges("search")
+        self.assertGreater(len(ranges), 0)
+        self.editor._close_find_dialog()
+
+    def test_find_text_wraps_around(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        test_text = "First match\nSecond match"
+        self.editor.set_text(test_text)
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "match")
+        # Find first occurrence
+        self.editor._find_next()
+        # Find second occurrence
+        self.editor._find_next()
+        # Should wrap around to first again
+        self.editor._find_next()
+        text_widget = self.editor._get_current_text_widget()
+        ranges = text_widget.tag_ranges("search")
+        self.assertGreater(len(ranges), 0)
+        self.editor._close_find_dialog()
+
+    def test_find_text_not_found(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        test_text = "Hello World"
+        self.editor.set_text(test_text)
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "NotFound")
+        # Should not raise an error
+        self.editor._find_next()
+        self.editor._close_find_dialog()
+
+    def test_find_previous(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        test_text = "First match\nSecond match\nThird match"
+        self.editor.set_text(test_text)
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "match")
+        # Find forward twice
+        self.editor._find_next()
+        self.editor._find_next()
+        # Then go backward
+        self.editor._find_previous()
+        text_widget = self.editor._get_current_text_widget()
+        ranges = text_widget.tag_ranges("search")
+        self.assertGreater(len(ranges), 0)
+        self.editor._close_find_dialog()
+
+    def test_close_find_dialog_removes_highlight(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        test_text = "Hello World"
+        self.editor.set_text(test_text)
+        self.editor._open_find_dialog()
+        self.editor.find_entry.insert(0, "Hello")
+        self.editor._find_next()
+        self.editor._close_find_dialog()
+        text_widget = self.editor._get_current_text_widget()
+        ranges = text_widget.tag_ranges("search")
+        self.assertEqual(len(ranges), 0)
+
+    def test_find_dialog_reopen_brings_to_front(self):
+        if not self.display_available:
+            self.skipTest("No display available")
+        self.editor._open_find_dialog()
+        first_dialog = self.editor.find_dialog
+        # Try to open again
+        self.editor._open_find_dialog()
+        # Should be the same dialog
+        self.assertIs(self.editor.find_dialog, first_dialog)
+        self.editor._close_find_dialog()
+
 
 if __name__ == '__main__':
     unittest.main()
