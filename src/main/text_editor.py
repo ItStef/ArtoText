@@ -23,6 +23,10 @@ class TextEditor:
         # Zoom tracking: default font size is 12pt (100%)
         self.current_font_size = 12
 
+        # Find dialog state
+        self.find_dialog = None
+        self.last_search_index = "1.0"
+
         # Create menu bar
         self._create_menu_bar()
 
@@ -55,6 +59,8 @@ class TextEditor:
         self.edit_menu.add_command(label="Cut", command=self._cut_text)
         self.edit_menu.add_command(label="Copy", command=self._copy_text)
         self.edit_menu.add_command(label="Paste", command=self._paste_text)
+        self.edit_menu.add_separator()
+        self.edit_menu.add_command(label="Find", command=self._open_find_dialog)
 
         # View menu
         self.view_menu = tk.Menu(self.menu_bar, tearoff=0)
@@ -430,6 +436,150 @@ class TextEditor:
             if text_widget:
                 text_widget.configure(font=("Arial", self.current_font_size))
 
+    def _open_find_dialog(self):
+        if self.find_dialog and self.find_dialog.winfo_exists():
+            self.find_dialog.lift()
+            self.find_dialog.focus()
+            return
+
+        text_widget = self._get_current_text_widget()
+        if not text_widget:
+            return
+
+        self.find_dialog = tk.Toplevel(self.root)
+        self.find_dialog.title("Find")
+        self.find_dialog.geometry("400x100")
+        self.find_dialog.resizable(False, False)
+
+        # Search frame
+        search_frame = tk.Frame(self.find_dialog)
+        search_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        tk.Label(search_frame, text="Find:").pack(side=tk.LEFT)
+        self.find_entry = tk.Entry(search_frame, width=30)
+        self.find_entry.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.find_entry.focus()
+
+        # Button frame
+        button_frame = tk.Frame(self.find_dialog)
+        button_frame.pack(fill=tk.X, padx=10, pady=(0, 10))
+
+        find_next_btn = tk.Button(button_frame, text="Find Next", command=self._find_next)
+        find_next_btn.pack(side=tk.LEFT, padx=5)
+
+        find_prev_btn = tk.Button(button_frame, text="Find Previous", command=self._find_previous)
+        find_prev_btn.pack(side=tk.LEFT, padx=5)
+
+        close_btn = tk.Button(button_frame, text="Close", command=self._close_find_dialog)
+        close_btn.pack(side=tk.RIGHT, padx=5)
+
+        # Bind Enter key to find next
+        self.find_entry.bind('<Return>', lambda e: self._find_next())
+        self.find_entry.bind('<Shift-Return>', lambda e: self._find_previous())
+
+        # Reset search index when dialog opens
+        self.last_search_index = "1.0"
+
+    def _find_next(self):
+        text_widget = self._get_current_text_widget()
+        if not text_widget or not self.find_entry:
+            return
+
+        search_term = self.find_entry.get()
+        if not search_term:
+            return
+
+        # Remove previous highlight
+        text_widget.tag_remove("search", "1.0", tk.END)
+
+        # Search from last position
+        pos = text_widget.search(search_term, self.last_search_index, tk.END, nocase=True)
+
+        if pos:
+            # Calculate end position
+            end_pos = f"{pos}+{len(search_term)}c"
+
+            # Highlight the found text
+            text_widget.tag_add("search", pos, end_pos)
+            text_widget.tag_config("search", background="yellow", foreground="black")
+
+            # Scroll to make the found text visible
+            text_widget.see(pos)
+
+            # Update last search index to continue from here
+            self.last_search_index = end_pos
+        else:
+            # Wrap around to beginning
+            self.last_search_index = "1.0"
+            pos = text_widget.search(search_term, "1.0", tk.END, nocase=True)
+
+            if pos:
+                end_pos = f"{pos}+{len(search_term)}c"
+                text_widget.tag_add("search", pos, end_pos)
+                text_widget.tag_config("search", background="yellow", foreground="black")
+                text_widget.see(pos)
+                self.last_search_index = end_pos
+            else:
+                messagebox.showinfo("Find", f"Cannot find '{search_term}'")
+
+    def _find_previous(self):
+        text_widget = self._get_current_text_widget()
+        if not text_widget or not self.find_entry:
+            return
+
+        search_term = self.find_entry.get()
+        if not search_term:
+            return
+
+        # Remove previous highlight
+        text_widget.tag_remove("search", "1.0", tk.END)
+
+        # For backwards search, we need to search from beginning to current position
+        # Get current position (before last found)
+        if self.last_search_index == "1.0":
+            search_start = tk.END
+        else:
+            search_start = f"{self.last_search_index}-{len(search_term)}c"
+
+        pos = text_widget.search(search_term, search_start, "1.0", backwards=True, nocase=True)
+
+        if pos:
+            # Calculate end position
+            end_pos = f"{pos}+{len(search_term)}c"
+
+            # Highlight the found text
+            text_widget.tag_add("search", pos, end_pos)
+            text_widget.tag_config("search", background="yellow", foreground="black")
+
+            # Scroll to make the found text visible
+            text_widget.see(pos)
+
+            # Update last search index
+            self.last_search_index = pos
+        else:
+            # Wrap around to end
+            pos = text_widget.search(search_term, tk.END, "1.0", backwards=True, nocase=True)
+
+            if pos:
+                end_pos = f"{pos}+{len(search_term)}c"
+                text_widget.tag_add("search", pos, end_pos)
+                text_widget.tag_config("search", background="yellow", foreground="black")
+                text_widget.see(pos)
+                self.last_search_index = pos
+            else:
+                messagebox.showinfo("Find", f"Cannot find '{search_term}'")
+
+    def _close_find_dialog(self):
+        if self.find_dialog:
+            # Remove highlight from text
+            text_widget = self._get_current_text_widget()
+            if text_widget:
+                text_widget.tag_remove("search", "1.0", tk.END)
+
+            self.find_dialog.destroy()
+            self.find_dialog = None
+            self.last_search_index = "1.0"
+
     def _setup_keybindings(self):
         self.root.bind('<Control-s>', lambda e: self._save_file())
         self.root.bind('<Control-n>', lambda e: self._new_file())
@@ -438,6 +588,7 @@ class TextEditor:
         self.root.bind('<Control-y>', lambda e: self._redo_text())
         self.root.bind('<Control-equal>', lambda e: self._zoom_in())
         self.root.bind('<Control-minus>', lambda e: self._zoom_out())
+        self.root.bind('<Control-f>', lambda e: self._open_find_dialog())
 
     def get_text(self):
         text_widget = self._get_current_text_widget()
